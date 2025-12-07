@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>يوميات إيهاب - الكتاب التفاعلي</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- خطوط عربية جميلة -->
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400;600;800&family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --book-w: 800px;
+            --book-h: 550px;
+            --paper-bg: #fffbf2; 
+            --primary: #00897b;  
+            --secondary: #ff7043; 
+            --accent: #ffd54f;    
+            --text-main: #37474f; 
+            --font-main: 'Baloo Bhaijaan 2', 'Tajawal', sans-serif;
+        }
+
+        body {
+            background-color: #b2dfdb; 
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: var(--font-main);
+            overflow: hidden;
+            touch-action: none;
+            user-select: none;
+        }
+
+        #canvas-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; 
+        }
+
+        .stage {
+            width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            perspective: 2500px; z-index: 10; position: relative;
+        }
+
+        .book {
+            position: relative;
+            width: var(--book-w);
+            height: var(--book-h);
+            transform-style: preserve-3d;
+            transition: transform 1s cubic-bezier(0.25, 1, 0.5, 1);
+            transform: rotateX(20deg); 
+            box-shadow: 0 50px 70px rgba(0,0,0,0.3), 0 10px 20px rgba(0,0,0,0.1); 
+        }
+
+        .page {
+            position: absolute;
+            width: 50%; height: 100%;
+            top: 0; right: 0; 
+            transform-origin: left center;
+            transform-style: preserve-3d;
+            transition: transform 1.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+            background-color: var(--paper-bg);
+            border-radius: 0 15px 15px 0;
+            cursor: pointer;
+        }
+
+        .front, .back {
+            position: absolute; width: 100%; height: 100%; top: 0; left: 0;
+            backface-visibility: hidden; overflow: hidden;
+            background-color: var(--paper-bg);
+            border: 1px solid #cfd8dc;
+        }
+
+        .front {
+            z-index: 2; border-radius: 0 15px 15px 0;
+            border-left: 2px solid #b0bec5;
+            background: linear-gradient(to right, #f5f5f5 0%, var(--paper-bg) 10%, var(--paper-bg) 100%);
+        }
+
+        .back {
+            transform: rotateY(180deg); z-index: 1;
+            border-radius: 15px 0 0 15px;
+            border-right: 2px solid #b0bec5;
+            background: linear-gradient(to left, #f5f5f5 0%, var(--paper-bg) 10%, var(--paper-bg) 100%);
+            box-shadow: inset -5px 0 15px rgba(0,0,0,0.03);
+        }
+
+        .no-border { border: none !important; background: none !important; }
+        .page.flipped { transform: rotateY(-180deg); }
+
+        /* --- تصميم الغلاف --- */
+        .cover-wrapper {
+            width: 100%; height: 100%;
+            background: linear-gradient(135deg, #00acc1 0%, #00838f 100%);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 20px; box-shadow: inset 10px 0 20px rgba(0,0,0,0.2);
+            color: white;
+            border-radius: 0 15px 15px 0;
+        }
+
+        .cover-img {
+            width: 160px; height: 160px; object-fit: cover;
+            border-radius: 50%; border: 6px solid #fff;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .book-title-large {
+            font-size: 3.5rem; font-weight: 900; margin-bottom: 30px;
+            text-shadow: 3px 3px 0 rgba(0,0,0,0.2);
+        }
+
+        .cover-buttons { width: 70%; display: flex; flex-direction: column; gap: 15px; }
+
+        .cover-btn {
+            background: white; color: #00838f; border: none;
+            padding: 15px; border-radius: 50px; font-size: 1.2rem; font-weight: 800;
+            cursor: pointer; transition: 0.3s; box-shadow: 0 5px 0 #b2ebf2;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .cover-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 0 #b2ebf2; }
+        .cover-btn:active { transform: translateY(2px); box-shadow: none; }
+        .btn-start { background: #ffd54f; color: #e65100; box-shadow: 0 5px 0 #ffca28; }
+        .btn-start:hover { box-shadow: 0 8px 0 #ffca28; }
+
+        /* --- صفحة البيانات الشخصية --- */
+        .profile-page {
+            width: 100%; height: 100%; background: #e0f2f1;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            border-left: 3px dashed #80cbc4; padding: 20px;
+        }
+        .profile-card {
+            background: white; padding: 30px; border-radius: 20px;
+            width: 80%; text-align: center;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05); border: 2px solid #b2dfdb;
+        }
+        .profile-img-placeholder {
+            width: 140px; height: 140px; background: #fafafa;
+            border: 5px solid #ffab91; border-radius: 50%;
+            margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;
+            overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .profile-img-placeholder img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .profile-title { color: #f57f17; font-size: 1.1rem; font-weight: bold; margin-bottom: 5px; }
+        .profile-name { color: #006064; font-size: 1.6rem; font-weight: 900; line-height: 1.4; }
+
+        /* --- صفحة التوصيف (محدثة) --- */
+        .desc-page {
+            width: 100%; height: 100%; background: #fff3e0;
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            padding: 30px; overflow-y: auto;
+        }
+        .desc-box {
+            background: white; padding: 20px; border-radius: 20px;
+            border: 3px solid #ffcc80; color: #e65100;
+            font-size: 0.9rem; line-height: 1.6; font-weight: 600;
+            box-shadow: 0 5px 0 #ffe0b2; width: 100%; text-align: right;
+        }
+        .desc-header {
+            font-size: 1.4rem; font-weight: 900; color: #e65100; margin-bottom: 10px;
+            text-align: center; border-bottom: 2px dashed #ffe0b2; padding-bottom: 5px;
+        }
+        .desc-section { margin-bottom: 8px; border-bottom: 1px solid #fff3e0; padding-bottom: 5px; }
+        .desc-section:last-child { border-bottom: none; }
+        .desc-key { color: #d84315; font-weight: 900; display: inline-block; min-width: 120px;}
+        .desc-val { color: #37474f; font-weight: 600; }
+
+        /* --- النصوص والفيديو --- */
+        .text-container { padding: 2rem; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; }
+        .text-box-styled { background: white; padding: 30px; border-radius: 25px; box-shadow: 0 8px 20px rgba(0,0,0,0.05); border: 3px dashed #4db6ac; position: relative; width: 90%; text-align: center;}
+        .page-header { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); background: #ff7043; color: white; padding: 5px 25px; border-radius: 50px; font-weight: 800; font-size: 1.1rem; box-shadow: 0 4px 0 #d84315; white-space: nowrap; }
+        .text-content { font-size: 1.6rem; line-height: 1.7; color: #37474f; font-weight: 700; }
+
+        .media-container { width: 90%; height: 90%; margin: 5%; background: #000; display: flex; justify-content: center; align-items: center; border-radius: 15px; border: 4px solid #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.1); overflow: hidden; }
+        .full-video { width: 100%; height: 100%; object-fit: cover; }
+        .split-video-wrapper { width: 100%; height: 100%; position: relative; overflow: hidden; background: black; }
+        .split-video-container { width: 200% !important; max-width: none !important; height: 100%; position: absolute; top: 0; object-fit: cover; pointer-events: none; }
+        .rtl-left-page-video { left: 0; } .rtl-right-page-video { left: -100%; }
+
+        /* --- تصميم الأسئلة --- */
+        .quiz-left { width: 100%; height: 100%; background: #e3f2fd; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; border-left: 3px dashed #90caf9; }
+        .quiz-right { width: 100%; height: 100%; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        .quiz-box { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 8px 0 #bbdefb; border: 3px solid #2196f3; text-align: center; width: 95%; }
+        .quiz-icon { font-size: 4rem; color: #1976d2; margin-bottom: 10px; }
+        .quiz-q-text { font-size: 1.4rem; font-weight: 900; color: #1565c0; line-height: 1.4; }
+        .quiz-btn { background: white; border: 2px solid #e0e0e0; padding: 12px; width: 100%; border-radius: 15px; font-weight: 800; color: #546e7a; margin-bottom: 10px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 0 #eee; display: flex; align-items: center; justify-content: space-between; }
+        .quiz-btn:hover { background: #e0f7fa; border-color: #4dd0e1; transform: translateY(-2px); }
+        .quiz-btn.correct { background: #c8e6c9; border-color: #4caf50; color: #2e7d32; }
+        .quiz-btn.wrong { background: #ffcdd2; border-color: #ef5350; color: #c62828; animation: shake 0.5s; }
+        .check-mark { display: none; } .quiz-btn.correct .check-mark { display: inline; color: #4caf50; }
+
+        /* --- تصميم اللعبة (Puzzle) --- */
+        .game-header { background: #5c6bc0; color: white; padding: 8px 20px; border-radius: 20px; font-weight: 900; margin-bottom: 15px; display: inline-block; font-size: 1.1rem;}
+        .game-page-left { width: 100%; height: 100%; background: #e8eaf6; border-left: 3px dashed #9fa8da; display: flex; flex-direction: column; align-items: center; padding: 15px; }
+        .game-page-right { width: 100%; height: 100%; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 15px; }
+        
+        .drop-zones-grid { display: grid; grid-template-columns: 1fr; gap: 10px; width: 100%; }
+        .drop-zone { height: 80px; width: 100%; background: rgba(255,255,255,0.6); border: 2px dashed #7986cb; border-radius: 12px; display: flex; align-items: center; padding: 0 10px; gap: 10px; transition: 0.3s; }
+        .drop-zone.filled { background: white; border: 2px solid #4caf50; padding: 0; overflow: hidden; }
+        .drop-zone-num { width: 30px; height: 30px; background: #7986cb; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; }
+        .draggables-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+        .draggable-item { width: 100%; aspect-ratio: 4/3; background: white; border: 4px solid white; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); cursor: grab; overflow: hidden; transition: transform 0.2s; }
+        .draggable-item:hover { transform: scale(1.05); z-index: 10; }
+        .draggable-item img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+        .drag-ghost { position: fixed; z-index: 9999; width: 120px; height: 90px; border: 4px solid #ffd54f; border-radius: 12px; opacity: 0.9; pointer-events: none; }
+
+        /* رسائل ونقاط */
+        .win-msg { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 40px; border-radius: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); text-align: center; z-index: 10000; display: none; flex-direction: column; align-items: center; border: 6px solid #4caf50; animation: popIn 0.5s; }
+        .game-score-fixed { position: fixed; top: 20px; left: 20px; background: white; padding: 8px 20px; border-radius: 30px; font-weight: bold; color: #f57f17; box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 2000; border: 2px solid #fff9c4; display: flex; align-items: center; gap: 8px; }
+
+        .controls-bar {
+            position: fixed; bottom: 30px;
+            background: rgba(255,255,255,0.95); padding: 10px 30px;
+            border-radius: 50px; display: flex; gap: 20px; align-items: center; 
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1); z-index: 1000; border: 1px solid #b2dfdb;
+        }
+        .ctrl-btn { border: none; color: #fff; width: 50px; height: 50px; border-radius: 50%; font-size: 1.3rem; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 0 rgba(0,0,0,0.15); position: relative; top: 0; }
+        .ctrl-btn:hover { transform: translateY(-3px); } .ctrl-btn:active { top: 2px; box-shadow: none; }
+        .btn-next { background: #00acc1; } .btn-prev { background: #ff7043; } 
+        .btn-play { background: #ffa726; } .btn-mute { background: #7e57c2; } 
+        .page-num { color: #546e7a; font-family: 'Baloo Bhaijaan 2'; font-size: 1.2rem; font-weight: 800; background: #eceff1; padding: 5px 15px; border-radius: 15px; }
+
+        @keyframes popIn { from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } 100% { transform: translateX(0); } }
+
+        @media (max-width: 768px) {
+            :root { --book-w: 90vw; --book-h: 60vw; }
+            .book-title-large { font-size: 2.5rem; }
+            .cover-img { width: 120px; height: 120px; }
+            .text-content { font-size: 1.2rem; line-height: 1.4; }
+            .ctrl-btn { width: 40px; height: 40px; font-size: 1.1rem; }
+            .draggable-item { height: 70px; } .drop-zone { height: 60px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div class="game-score-fixed">
+        <i class="fas fa-star text-yellow-400"></i>
+        <span id="globalScore">0</span>
+    </div>
+
+    <div class="stage">
+        <div class="book" id="book"></div>
+    </div>
+
+    <div id="winMsg" class="win-msg">
+        <div class="flex justify-center gap-2 mb-4">
+            <i class="fas fa-star text-yellow-400 text-6xl fa-bounce"></i>
+        </div>
+        <h2 class="text-4xl font-bold text-green-600 mb-2 font-baloo">أحسنت يا بطل!</h2>
+        <p class="text-gray-600 text-lg mb-6">لقد أنهيت اللعبة بنجاح</p>
+        <button onclick="location.reload()" class="bg-blue-500 text-white px-8 py-3 rounded-full font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition">العب مرة أخرى</button>
+    </div>
+
+    <audio id="sfxFlip" src="https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3"></audio>
+    <audio id="sfxWin" src="sound/achivement.mp3"></audio>
+    <audio id="sfxWrong" src="sound/wrong.mp3"></audio>
+    <audio id="narratorAudio"></audio>
+
+    <div class="controls-bar">
+        <button class="ctrl-btn btn-next" onclick="nextPage()"><i class="fas fa-arrow-right"></i></button>
+        <button class="ctrl-btn btn-play" onclick="togglePlayPause()" id="playPauseBtn"><i class="fas fa-pause"></i></button>
+        <button class="ctrl-btn btn-mute" onclick="toggleMute()" id="muteBtn"><i class="fas fa-volume-up"></i></button>
+        <span class="page-num" id="pageIndicator">0 / 0</span>
+        <button class="ctrl-btn btn-prev" onclick="prevPage()"><i class="fas fa-arrow-left"></i></button>
+    </div>
+
+    <script>
+        window.handleVideoError = function(video, path) {
+            video.parentElement.innerHTML = `<div class="flex flex-col items-center justify-center h-full bg-gray-100 text-gray-400"><i class="fas fa-video-slash text-2xl mb-2"></i><span class="text-xs">جاري التحميل...</span></div>`;
+        };
+
+        function initThreeJS() {
+            const container = document.getElementById('canvas-container');
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xb2dfdb);
+            scene.fog = new THREE.Fog(0xb2dfdb, 40, 150);
+            
+            const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const isMobile = window.innerWidth < 768;
+            camera.position.set(0, isMobile ? 30 : 25, isMobile ? 40 : 35); 
+            camera.lookAt(0, -2, 0);
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true; 
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+            container.appendChild(renderer.domElement);
+            
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7); 
+            scene.add(ambientLight);
+            const sunLight = new THREE.DirectionalLight(0xfff176, 0.8); 
+            sunLight.position.set(50, 100, 50);
+            sunLight.castShadow = true;
+            scene.add(sunLight);
+            
+            const envGroup = new THREE.Group();
+            const floorGeom = new THREE.PlaneGeometry(1000, 1000);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0xa5d6a7 });
+            const floor = new THREE.Mesh(floorGeom, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = -20;
+            floor.receiveShadow = true;
+            envGroup.add(floor);
+
+            const tableGroup = new THREE.Group();
+            const tableTopGeom = new THREE.BoxGeometry(110, 3, 70);
+            const tableMat = new THREE.MeshStandardMaterial({ color: 0x8d6e63 }); 
+            const tableTop = new THREE.Mesh(tableTopGeom, tableMat);
+            tableTop.position.y = -6;
+            tableTop.receiveShadow = true;
+            tableTop.castShadow = true;
+            tableGroup.add(tableTop);
+
+            const legGeom = new THREE.CylinderGeometry(2, 2, 14, 16);
+            const legMat = new THREE.MeshStandardMaterial({ color: 0x6d4c41 });
+            [{x: -45, z: -25}, {x: 45, z: -25}, {x: -45, z: 25}, {x: 45, z: 25}].forEach(pos => {
+                const leg = new THREE.Mesh(legGeom, legMat);
+                leg.position.set(pos.x, -13, pos.z);
+                leg.castShadow = true;
+                leg.receiveShadow = true;
+                tableGroup.add(leg);
+            });
+            envGroup.add(tableGroup);
+            
+            function addTree(x, z, scale = 1) {
+                const trunkGeom = new THREE.CylinderGeometry(1*scale, 1.5*scale, 6*scale, 6);
+                const trunkMat = new THREE.MeshStandardMaterial({ color: 0x795548 });
+                const trunk = new THREE.Mesh(trunkGeom, trunkMat);
+                trunk.position.set(x, -20 + (3*scale), z);
+                const leavesGeom = new THREE.DodecahedronGeometry(5*scale);
+                const leavesMat = new THREE.MeshStandardMaterial({ color: 0x43a047 });
+                const leaves = new THREE.Mesh(leavesGeom, leavesMat);
+                leaves.position.y = 5*scale;
+                trunk.add(leaves);
+                trunk.castShadow = true;
+                envGroup.add(trunk);
+            }
+
+            for(let i=0; i<30; i++) {
+                const x = (Math.random() - 0.5) * 250;
+                const z = -70 - Math.random() * 80;
+                addTree(x, z, 1.2 + Math.random());
+            }
+            addTree(-75, 0, 1.4);
+            addTree(75, 10, 1.4);
+
+            const flowerGeom = new THREE.SphereGeometry(0.6, 8, 8);
+            const fColors = [0xffeb3b, 0xf44336, 0xff9800, 0xba68c8];
+            for(let i=0; i<60; i++) {
+                const col = fColors[Math.floor(Math.random()*fColors.length)];
+                const mat = new THREE.MeshBasicMaterial({ color: col });
+                const flower = new THREE.Mesh(flowerGeom, mat);
+                flower.position.set((Math.random()-0.5)*180, -19.5, (Math.random()-0.5)*90 + 20);
+                if(Math.abs(flower.position.x) > 60 || Math.abs(flower.position.z) > 40) envGroup.add(flower);
+            }
+            scene.add(envGroup);
+            
+            let mouseX = 0; let mouseY = 0;
+            document.addEventListener('mousemove', (event) => {
+                mouseX = (event.clientX / window.innerWidth) - 0.5;
+                mouseY = (event.clientY / window.innerHeight) - 0.5;
+            });
+            const animate = () => {
+                requestAnimationFrame(animate);
+                const factor = window.innerWidth < 768 ? 1 : 2; 
+                camera.position.x += (mouseX * factor * 5 - camera.position.x) * 0.05;
+                const targetY = (window.innerWidth < 768 ? 30 : 25) + mouseY * 5;
+                camera.position.y += (targetY - camera.position.y) * 0.05;
+                camera.lookAt(0, -2, 0);
+                renderer.render(scene, camera);
+            };
+            animate();
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                const isMob = window.innerWidth < 768;
+                camera.position.z = isMob ? 40 : 35;
+                camera.position.y = isMob ? 30 : 25;
+            });
+        }
+        initThreeJS();
+
+        const assets = {
+            images: { cover: 'image_9e9756.jpg', profile: 'image_9bf800.png' }, // تحديث صورة الغلاف
+            video: {
+                1: 'https://res.cloudinary.com/dhvuw8yog/video/upload/v1/1_tzks3o',
+                2: 'https://res.cloudinary.com/dhvuw8yog/video/upload/v1/2_xknv7j',
+                3: 'https://res.cloudinary.com/dhvuw8yog/video/upload/v1/3_wo5zkq',
+                4: 'https://res.cloudinary.com/dhvuw8yog/video/upload/v1/4_myyjhn',
+                5: 'https://res.cloudinary.com/dhvuw8yog/video/upload/v1/5_wobned',
+                6: 'https://res.cloudinary.com/dhvuw8yog/video/upload/v1/6_r1jspr',
+                7: 'https://res.cloudinary.com/dhvuw8yog/video/upload/v1/7_celdbg',
+                8: 'https://res.cloudinary.com/dhvuw8yog/video/upload/v1/8_ncbije',
+                9: 'https://res.cloudinary.com/dhvuw8yog/video/upload/v1/9_xz5bsb'
+            },
+            audio: {
+                1: 'sound/1.mp3', 2: 'sound/2.mp3', 3: 'sound/3.mp3', 4: 'sound/4.mp3',
+                5: 'sound/5.mp3', 6: 'sound/6.mp3', 7: 'sound/7.mp3', 8: 'sound/8.mp3', 9: 'sound/9.mp3'
+            },
+            gameImages: {
+                1: 'game/1.jpg', 2: 'game/4.jpg', 3: 'game/7 (2).jpg', 4: 'game/9.jpg'
+            }
+        };
+
+        const storyConfig = [
+            // Sheet 0: Cover / Personal Data
+            { type: 'cover' }, // 0 Front
+            { type: 'personal-data' }, // 0 Back
+            
+            // Sheet 1: Book Desc / Story Start
+            { type: 'book-desc' }, // 1 Front
+            { type: 'text', title: 'الاستيقاظ ☀️', text: 'استيقظ إيهاب من نومه، فتح عينيه وتمطّى قليلًا، واستعد ليوم جديد.', id: 1 }, // 1 Back
+            
+            // Story
+            { type: 'video', id: 1 }, 
+            { type: 'text', title: 'غسل الأسنان 🪥', text: 'دخل الحمّام، أخذ الفرشاة والمعجون، ونظّف أسنانه جيدًا ليحافظ على ابتسامته.', id: 2 }, 
+            
+            { type: 'video', id: 2 }, 
+            { type: 'text', title: 'غسل الوجه 💧', text: 'غسل إيهاب وجهه بالماء البارد، فشعر بالانتعاش، ثم جفّفه بالمنشفة.', id: 3 }, 
+            
+            { type: 'video', id: 3 }, 
+            { type: 'quiz-split', id: 1, side: 'left' }, 
+            
+            { type: 'quiz-split', id: 1, side: 'right' },
+            { type: 'text', title: 'ركوب الباص 🚌', text: 'ارتدى ملابسه، حمل حقيبته، وصعد الباص متجهًا إلى المدرسة وهو ينظر من النافذة.', id: 4 }, 
+            
+            { type: 'video', id: 4 }, 
+            { type: 'video-split', id: 5, side: 'left' },  
+            
+            { type: 'video-split', id: 5, side: 'right' }, 
+            { type: 'quiz-split', id: 2, side: 'left' }, 
+            
+            { type: 'quiz-split', id: 2, side: 'right' },
+            { type: 'text', title: 'مساعدة الأم ❤️', text: 'عاد للبيت بعد المدرسة، غسل يديه، وساعد أمه في ترتيب المائدة.', id: 6 }, 
+            
+            { type: 'video', id: 6 }, 
+            { type: 'text', title: 'الغداء 🍎', text: 'جلس مع عائلته على المائدة، وتناولوا الغداء معًا في جو هادئ.', id: 7 }, 
+            
+            { type: 'video', id: 7 }, 
+            { type: 'quiz-split', id: 3, side: 'left' }, 
+            
+            { type: 'quiz-split', id: 3, side: 'right' },
+            { type: 'text', title: 'القراءة 📚', text: 'بعد الغداء، جلس مع إخوته يقرؤون كتابًا ممتعًا مليئًا بالصور.', id: 8 }, 
+            
+            { type: 'video', id: 8 }, 
+            { type: 'text', title: 'النوم 🌙', text: 'مع الليل، شعر بالنعاس، رتب سريره، ونام وهو سعيد بيومه.', id: 9 }, 
+            
+            { type: 'video', id: 9 }, 
+            
+            { type: 'game-level', level: 1, side: 'left' }, { type: 'game-level', level: 1, side: 'right' },
+            { type: 'game-level', level: 2, side: 'left' }, { type: 'game-level', level: 2, side: 'right' },
+            { type: 'game-level', level: 3, side: 'left' }, { type: 'game-level', level: 3, side: 'right' },
+            
+            { type: 'back-cover' } 
+        ];
+
+        const quizData = [
+            { id: 1, icon: "fa-question-circle", question: "ماذا فعل إيهاب أول ما استيقظ؟", options: ["شاهد التلفاز", "تمطّى واستعد لليوم", "أكل الغداء"], correct: 1 },
+            { id: 2, icon: "fa-bus", question: "كيف ذهب إيهاب للمدرسة؟", options: ["بالباص", "مشياً", "بالسيارة"], correct: 0 },
+            { id: 3, icon: "fa-utensils", question: "ماذا فعل إيهاب بعد المدرسة؟", options: ["لعب بالكرة", "ساعد أمه", "نام فوراً"], correct: 1 }
+        ];
+
+        let currentPage = 0; 
+        let isPlaying = false; 
+        let globalScore = 0;
+        let currentLevelProgress = 0;
+        let draggedEl = null; let ghostEl = null; let dragSrcId = null;
+
+        // Navigation
+        function goToPage(pageIndex) {
+            const targetSheet = pageIndex; 
+            const interval = setInterval(() => {
+                if(currentPage < targetSheet) nextPage();
+                else if(currentPage > targetSheet) prevPage();
+                else clearInterval(interval);
+            }, 300);
+        }
+
+        function syncSplitVideos() {
+            const leftIframe = document.querySelector('.page.flipped .split-video-container'); 
+            const rightIframe = document.querySelector('.page:not(.flipped) .split-video-container'); 
+            if (leftIframe && rightIframe) {
+                const src = leftIframe.src;
+                if(src.includes(assets.video[5])) {
+                   leftIframe.src = 'about:blank'; rightIframe.src = 'about:blank';
+                   setTimeout(() => { leftIframe.src = src; rightIframe.src = src; }, 50); 
+                }
+            }
+        }
+
+        function playNarration(id) {
+            const narrator = document.getElementById('narratorAudio');
+            if (assets.audio[id]) { narrator.src = assets.audio[id]; narrator.play().catch(e => {}); } else { narrator.pause(); }
+        }
+
+        function handleQuizAnswer(btn, isCorrect) {
+            if (btn.classList.contains('clicked')) return;
+            btn.classList.add('clicked');
+            const allBtns = btn.parentElement.querySelectorAll('.quiz-btn');
+            allBtns.forEach(b => b.classList.add('clicked')); 
+            if (isCorrect) {
+                btn.classList.add('correct');
+                document.getElementById('sfxWin').play().catch(()=>{});
+                globalScore += 20; document.getElementById('globalScore').innerText = globalScore;
+            } else {
+                btn.classList.add('wrong');
+                document.getElementById('sfxWrong').play().catch(()=>{});
+                const correctBtn = Array.from(allBtns).find(b => b.dataset.correct === "true");
+                if(correctBtn) correctBtn.classList.add('correct');
+            }
+        }
+
+        const gameLevels = [
+            { level: 1, title: "بداية ونهاية اليوم", zones: [{id: 1, label: "الاستيقاظ"}, {id: 4, label: "النوم"}], items: [{id: 4, img: "game/9.jpg"}, {id: 1, img: "game/1.jpg"}] },
+            { level: 2, title: "أحداث المدرسة", zones: [{id: 1, label: "المدرسة"}, {id: 2, label: "الغداء"}, {id: 3, label: "القراءة"}], items: [{id: 3, img: "game/8.jpg"}, {id: 1, img: "game/4.jpg"}, {id: 2, img: "game/7 (2).jpg"}] },
+            { level: 3, title: "رتب اليوم كاملاً", zones: [{id: 1, label: "الاستيقاظ"}, {id: 2, label: "المدرسة"}, {id: 3, label: "الغداء"}, {id: 4, label: "النوم"}], items: [{id: 3, img: "game/7 (2).jpg"}, {id: 1, img: "game/1.jpg"}, {id: 4, img: "game/9.jpg"}, {id: 2, img: "game/4.jpg"}] }
+        ];
+
+        function loadGameLevel(levelIdx) { /* Handled in generateHTML dynamically */ }
+
+        function handleDragStart(e, id, imgUrl) {
+            e.preventDefault(); dragSrcId = id;
+            ghostEl = document.createElement('img'); ghostEl.src = decodeURI(imgUrl); ghostEl.className = 'drag-ghost'; document.body.appendChild(ghostEl);
+            moveGhost(e);
+            e.target.closest('.draggable-item').style.opacity = '0.3'; draggedEl = e.target.closest('.draggable-item');
+            document.addEventListener('mousemove', moveGhost); document.addEventListener('mouseup', handleDrop);
+            document.addEventListener('touchmove', moveGhost, {passive: false}); document.addEventListener('touchend', handleDrop);
+        }
+
+        function moveGhost(e) {
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            if(ghostEl) { ghostEl.style.left = (clientX - 60) + 'px'; ghostEl.style.top = (clientY - 45) + 'px'; }
+        }
+
+        function handleDrop(e) {
+            document.removeEventListener('mousemove', moveGhost); document.removeEventListener('mouseup', handleDrop);
+            document.removeEventListener('touchmove', moveGhost); document.removeEventListener('touchend', handleDrop);
+            
+            const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+            const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+            
+            if(ghostEl) ghostEl.style.display = 'none';
+            let elemBelow = document.elementFromPoint(clientX, clientY);
+            if(ghostEl) ghostEl.remove();
+            
+            let dropZone = elemBelow ? elemBelow.closest('.drop-zone') : null;
+
+            if (dropZone && !dropZone.classList.contains('filled')) {
+                const zoneId = parseInt(dropZone.dataset.id);
+                const levelIdx = parseInt(dropZone.dataset.levelIdx);
+
+                if (zoneId === dragSrcId) {
+                    dropZone.classList.add('filled');
+                    dropZone.innerHTML = `<img src="${draggedEl.querySelector('img').src}" style="width:100%; height:100%; object-fit:cover;">`;
+                    draggedEl.remove();
+                    
+                    document.getElementById('sfxWin').play().catch(()=>{});
+                    globalScore += 10; document.getElementById('globalScore').innerText = globalScore;
+                    currentLevelProgress++;
+                    
+                    if(currentLevelProgress === gameLevels[levelIdx].items.length) {
+                        setTimeout(() => {
+                            if (levelIdx < 2) {
+                                nextPage(); // Auto advance
+                            } else {
+                                document.getElementById('winMsg').style.display = 'flex';
+                            }
+                        }, 1500); 
+                    }
+                } else {
+                    draggedEl.style.opacity = '1';
+                    document.getElementById('sfxWrong').play().catch(()=>{});
+                }
+            } else { if(draggedEl) draggedEl.style.opacity = '1'; }
+            draggedEl = null; ghostEl = null;
+        }
+
+        function initBook() {
+            const bookEl = document.getElementById('book');
+            bookEl.innerHTML = '';
+            const numSheets = Math.ceil(storyConfig.length / 2);
+            for (let i = 0; i < numSheets; i++) {
+                const dataFront = storyConfig[i * 2];
+                const dataBack = storyConfig[i * 2 + 1];
+                const pageDiv = document.createElement('div');
+                pageDiv.className = `page`;
+                pageDiv.id = `page-${i}`;
+                pageDiv.style.zIndex = numSheets - i; 
+                let frontHTML = generateFaceHTML(dataFront, 'front', i);
+                let frontClass = 'front';
+                if(dataFront && (dataFront.type === 'video-split' || dataFront.type === 'game-level' || dataFront.type === 'quiz-split' || dataFront.type === 'personal-data' || dataFront.type === 'book-desc')) frontClass += ' no-border';
+                let backHTML = generateFaceHTML(dataBack, 'back', i);
+                let backClass = 'back';
+                if(dataBack && (dataBack.type === 'video-split' || dataBack.type === 'game-level' || dataBack.type === 'quiz-split' || (dataBack && dataBack.type === 'personal-data'))) backClass += ' no-border';
+                pageDiv.innerHTML = `<div class="${frontClass}">${frontHTML}</div><div class="${backClass}">${backHTML}</div>`;
+                bookEl.appendChild(pageDiv);
+            }
+        }
+
+        function generateFaceHTML(data, faceType, sheetIndex) {
+            if (!data) return `<div class="text-container"></div>`;
+            
+            if (data.type === 'cover') {
+                return `
+                <div class="cover-wrapper">
+                    <img src="${assets.images.cover}" class="cover-img" onerror="this.src='image_9e9756.jpg'">
+                    <h1 class="book-title-large">يوميات إيهاب</h1>
+                    <div class="cover-buttons">
+                        <button class="cover-btn" onclick="goToPage(1)">
+                            <i class="fas fa-id-card"></i> بياناتي
+                        </button>
+                        <button class="cover-btn" onclick="goToPage(1)">
+                            <i class="fas fa-book-open"></i> عن الكتاب
+                        </button>
+                        <button class="cover-btn btn-start" onclick="goToPage(2)">
+                            <i class="fas fa-play"></i> ابدأ القصة
+                        </button>
+                    </div>
+                </div>`;
+            }
+            else if (data.type === 'personal-data') {
+                return `
+                <div class="profile-page">
+                    <div class="profile-card">
+                        <div class="profile-img-placeholder">
+                            <i class="fas fa-user-graduate fa-4x text-teal-600"></i>
+                        </div>
+                        <div class="profile-title">إعداد الطالبة</div>
+                        <div class="profile-name">سارة عبد الوهاب<br>محمد عبد الحميد</div>
+                        <div class="mt-4 text-gray-400 text-sm font-bold">كلية التربية للطفولة المبكرة<br>جامعة القاهرة</div>
+                    </div>
+                </div>`;
+            }
+
+            if (data.type === 'book-desc') {
+                return `
+                <div class="desc-page">
+                    <div class="desc-box">
+                        <h2 class="desc-header">عن الكتاب</h2>
+                        <div class="mb-4">
+                            <span class="desc-key">الوصف:</span>
+                            <span class="desc-val">كتاب تفاعلي إلكتروني يهدف إلى تنمية الوعي بالعادات اليومية الصحيحة للأطفال من خلال قصة ممتعة.</span>
+                        </div>
+                         <div class="mb-4">
+                            <span class="desc-key">المحتوى:</span>
+                            <span class="desc-val">قصة مصورة ومسموعة، فيديوهات تعليمية، ألعاب تفاعلية ممتعة.</span>
+                        </div>
+
+                        <div class="desc-section">
+                            <span class="desc-key">التوصيف التربوي:</span>
+                            <span class="desc-val">عرض فردي أو بمساعدة المعلم/الوالد.</span>
+                        </div>
+                        <div class="desc-section">
+                            <span class="desc-key">الفئة العمرية:</span>
+                            <span class="desc-val">5 - 6 سنوات.</span>
+                        </div>
+                         <div class="desc-section">
+                            <span class="desc-key">الخصائص النمائية:</span>
+                            <span class="desc-val">الانتباه، التنظيم اليومي، الوعي السلوكي، النمو اللغوي.</span>
+                        </div>
+                        <div class="desc-section">
+                            <span class="desc-key">الهدف التربوي:</span>
+                            <span class="desc-val">تنمية الوعي بالعادات اليومية + تعزيز مهارة الفهم القرائي.</span>
+                        </div>
+                        <div class="desc-section">
+                            <span class="desc-key">التفاعل:</span>
+                            <span class="desc-val">أزرار تنقل، أسئلة اختيار من متعدد، لعبة ترتيب الأحداث.</span>
+                        </div>
+                         <div class="desc-section">
+                            <span class="desc-key">التغذية الراجعة:</span>
+                            <span class="desc-val">"أحسنت يا بطل!"، مؤثرات صوتية.</span>
+                        </div>
+                         <div class="desc-section">
+                            <span class="desc-key">الوسائط:</span>
+                            <span class="desc-val">صور – أيقونات – مؤثرات صوتية – فيديو تعليمي.</span>
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            if (data.type === 'text') {
+                return `
+                <div class="text-container">
+                    <div class="text-box-styled">
+                        <div class="page-header">${data.title}</div>
+                        <p class="text-content">"${data.text}"</p>
+                    </div>
+                </div>`;
+            }
+
+            if (data.type === 'video') {
+                const vidId = `vid-${faceType}-${sheetIndex}`;
+                return `
+                <div class="media-container">
+                    <video id="${vidId}" class="full-video" src="${assets.video[data.id]}" playsinline loop muted></video>
+                </div>`;
+            }
+
+            if (data.type === 'video-split') {
+                const vidId = `vid-${faceType}-${sheetIndex}`;
+                const splitClass = data.side === 'right' ? 'rtl-right-page-video' : 'rtl-left-page-video';
+                return `
+                <div class="split-video-wrapper">
+                    <video id="${vidId}" class="split-video-container ${splitClass}" src="${assets.video[data.id]}" playsinline loop muted></video>
+                </div>`;
+            }
+
+            if (data.type === 'game-drag') {
+                if (data.side === 'left') {
+                    // Drop Zones
+                    return `
+                    <div class="game-wrapper" style="background:#e8eaf6; border-left:3px dashed #9fa8da;">
+                        <div class="game-title-bar">رتب أحداث اليوم</div>
+                        <div class="target-list">
+                            <div class="drop-box" data-id="1"><div class="drop-num">1</div><span class="drop-label">الاستيقاظ</span></div>
+                            <div class="drop-box" data-id="2"><div class="drop-num">2</div><span class="drop-label">المدرسة</span></div>
+                            <div class="drop-box" data-id="3"><div class="drop-num">3</div><span class="drop-label">الغداء</span></div>
+                            <div class="drop-box" data-id="4"><div class="drop-num">4</div><span class="drop-label">النوم</span></div>
+                        </div>
+                    </div>`;
+                } else {
+                    // Draggables
+                    return `
+                    <div class="game-wrapper" style="background:#fff3e0;">
+                        <div class="source-grid">
+                            <div class="draggable" onmousedown="dragStart(event, 3, '${assets.gameImages[3]}')" ontouchstart="dragStart(event, 3, '${assets.gameImages[3]}')"><img src="${assets.gameImages[3]}"></div>
+                            <div class="draggable" onmousedown="dragStart(event, 1, '${assets.gameImages[1]}')" ontouchstart="dragStart(event, 1, '${assets.gameImages[1]}')"><img src="${assets.gameImages[1]}"></div>
+                            <div class="draggable" onmousedown="dragStart(event, 4, '${assets.gameImages[4]}')" ontouchstart="dragStart(event, 4, '${assets.gameImages[4]}')"><img src="${assets.gameImages[4]}"></div>
+                            <div class="draggable" onmousedown="dragStart(event, 2, '${assets.gameImages[2]}')" ontouchstart="dragStart(event, 2, '${assets.gameImages[2]}')"><img src="${assets.gameImages[2]}"></div>
+                        </div>
+                    </div>`;
+                }
+            }
+
+            if (data.type === 'quiz-split') {
+                const q = quizData.find(q => q.id === data.id);
+                if (data.side === 'left') {
+                    return `<div class="quiz-left"><div class="quiz-box"><i class="fas ${q.icon} quiz-icon"></i><h3 class="quiz-q-text">${q.question}</h3></div></div>`;
+                } else {
+                    const optionsHTML = q.options.map((opt, idx) => {
+                        const isCorrect = idx === q.correct;
+                        return `<button class="quiz-btn" data-correct="${isCorrect}" onclick="handleQuizAnswer(this, ${isCorrect})">${opt} <i class="fas fa-check-circle check-mark"></i></button>`;
+                    }).join('');
+                    return `<div class="quiz-right"><div class="quiz-options">${optionsHTML}</div></div>`;
+                }
+            }
+
+            if (data.type === 'game-level') {
+                const levelIdx = data.level - 1; 
+                const levelData = gameLevels[levelIdx];
+                
+                if (data.side === 'left') {
+                    let zonesHTML = levelData.zones.map((z, idx) => `
+                        <div class="drop-zone" data-id="${z.id}" data-level-idx="${levelIdx}">
+                            <div class="drop-zone-num">${idx+1}</div>
+                            <div class="drop-zone-text">${z.label}</div>
+                        </div>`).join('');
+                    return `
+                    <div class="game-page-left">
+                        <div class="game-header">المستوى ${data.level}</div>
+                        <div class="drop-zones-grid">${zonesHTML}</div>
+                    </div>`;
+                } else {
+                    let itemsHTML = levelData.items.map(item => `
+                        <div class="draggable-item" onmousedown="handleDragStart(event, ${item.id}, '${encodeURI(item.img)}')" ontouchstart="handleDragStart(event, ${item.id}, '${encodeURI(item.img)}')">
+                            <img src="${item.img}">
+                        </div>`).join('');
+                    return `
+                    <div class="game-page-right">
+                        <div class="draggables-grid">${itemsHTML}</div>
+                        <p class="mt-4 text-gray-500 font-bold text-sm">رتب أحداث القصة</p>
+                    </div>`;
+                }
+            }
+
+            if (data.type === 'back-cover') {
+                return `<div class="text-container"><h1 class="text-4xl font-bold text-teal-700">النهاية</h1></div>`;
+            }
+
+            return '';
+        }
+
+        // Navigation
+        function nextPage() {
+            if(!isPlaying) { isPlaying = true; document.getElementById('playPauseBtn').innerHTML = '<i class="fas fa-pause"></i>'; }
+            const numSheets = document.querySelectorAll('.page').length;
+            if (currentPage < numSheets) { 
+                currentPage++; 
+                updateBook();
+                setTimeout(syncSplitVideos, 800); 
+            }
+        }
+        function prevPage() { if (currentPage > 0) { currentPage--; updateBook(); setTimeout(syncSplitVideos, 800); } }
+        function togglePlayPause() { isPlaying = !isPlaying; document.getElementById('playPauseBtn').innerHTML = isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>'; updateBook(); }
+        function toggleMute() { 
+            const narrator = document.getElementById('narratorAudio');
+            narrator.muted = !narrator.muted; 
+            document.getElementById('muteBtn').innerHTML = narrator.muted ? '<i class="fas fa-volume-mute"></i>' : '<i class="fas fa-volume-up"></i>'; 
+        }
+
+        function updateBook() {
+            const pages = document.querySelectorAll('.page');
+            const numSheets = pages.length;
+            document.getElementById('pageIndicator').innerText = `${currentPage} / ${numSheets}`;
+            document.getElementById('sfxFlip').currentTime=0; document.getElementById('sfxFlip').play().catch(()=>{});
+
+            pages.forEach((p, index) => {
+                if (index < currentPage) {
+                    if (!p.classList.contains('flipped')) { p.classList.add('flipped'); p.style.zIndex = index; }
+                } else {
+                    if (p.classList.contains('flipped')) { p.classList.remove('flipped'); p.style.zIndex = numSheets - index; }
+                }
+            });
+
+            document.getElementById('narratorAudio').pause();
+            document.querySelectorAll('video').forEach(v => v.pause());
+
+            if (!isPlaying) return;
+
+            // Page logic
+            if (currentPage < numSheets) {
+                const frontData = storyConfig[currentPage * 2];
+                if (frontData && frontData.type === 'text' && frontData.id) playNarration(frontData.id);
+                else if (frontData && (frontData.type === 'video' || frontData.type === 'video-split')) {
+                     const v = document.getElementById(`vid-${currentPage}-front`);
+                     if(v) { v.currentTime = 0; v.muted = false; v.play().catch(()=>{}); }
+                }
+                // Reset level progress logic
+                if (frontData && frontData.type === 'game-level') currentLevelProgress = 0;
+            }
+            
+            if (currentPage > 0) {
+                const backData = storyConfig[(currentPage-1) * 2 + 1];
+                if (backData && backData.type === 'text' && backData.id) playNarration(backData.id);
+                else if (backData && (backData.type === 'video' || backData.type === 'video-split')) {
+                     const v = document.getElementById(`vid-${currentPage-1}-back`);
+                     if(v) { 
+                        v.currentTime = 0; 
+                        if(backData.type === 'video-split' && backData.side === 'left') v.muted = true; else v.muted = false;
+                        v.play().catch(()=>{}); 
+                    }
+                }
+            }
+        }
+
+        initBook();
+        document.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight') prevPage(); if (e.key === 'ArrowLeft') nextPage(); if (e.key === ' ') togglePlayPause(); });
+    </script>
+</body>
+</html>
