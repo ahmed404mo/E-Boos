@@ -137,7 +137,7 @@
             border-left: 3px dashed #80cbc4; padding: 20px;
         }
         .profile-card {
-            background: white; padding: 30px; border-radius: 20px;
+            background: white; padding: 30px; border-radius: 20%;
             width: 80%; text-align: center;
             box-shadow: 0 10px 20px rgba(0,0,0,0.05); border: 2px solid #b2dfdb;
         }
@@ -491,7 +491,11 @@
         initThreeJS();
 
         const assets = {
-            images: { cover: '/image/backfroundFirst.png', profile: '/image/sara.png' },
+            images: { 
+                // تم تحديث الروابط لصيغة عرض مباشرة أكثر استقراراً
+                cover: 'https://lh3.googleusercontent.com/d/1OXpZE5sMqB8lC-v-cCMHbJQtso_LCyef', 
+                profile: 'https://lh3.googleusercontent.com/d/1q0t3VCDOZLEF2hp51ZCt_44paCRjw7KH' 
+            },
             video: {
                 1: 'https://res.cloudinary.com/dhvuw8yog/video/upload/v1/1_tzks3o',
                 2: 'https://res.cloudinary.com/dhvuw8yog/video/upload/v1/2_xknv7j',
@@ -508,7 +512,7 @@
                 5: 'sound/5.mp3', 6: 'sound/6.mp3', 7: 'sound/7.mp3', 8: 'sound/8.mp3', 9: 'sound/9.mp3'
             },
             gameImages: {
-                1: 'game/1.jpg', 2: 'game/4.jpg', 3: 'game/7.jpg', 4: 'game/9.jpg'
+                1: 'game/1.jpg', 2: 'game/4.jpg', 3: 'game/7 (2).jpg', 4: 'game/9.jpg'
             }
         };
 
@@ -641,8 +645,8 @@
 
         const gameLevels = [
             { level: 1, title: "بداية ونهاية اليوم", zones: [{id: 1, label: "الاستيقاظ"}, {id: 4, label: "النوم"}], items: [{id: 4, img: "game/9.jpg"}, {id: 1, img: "game/1.jpg"}] },
-            { level: 2, title: "أحداث المدرسة", zones: [{id: 1, label: "المدرسة"}, {id: 2, label: "الغداء"}, {id: 3, label: "القراءة"}], items: [{id: 3, img: "game/8.jpg"}, {id: 1, img: "game/4.jpg"}, {id: 2, img: "game/7.jpg"}] },
-            { level: 3, title: "رتب اليوم كاملاً", zones: [{id: 1, label: "الاستيقاظ"}, {id: 2, label: "المدرسة"}, {id: 3, label: "الغداء"}, {id: 4, label: "النوم"}], items: [{id: 3, img: "game/7.jpg"}, {id: 1, img: "game/1.jpg"}, {id: 4, img: "game/9.jpg"}, {id: 2, img: "game/4.jpg"}] }
+            { level: 2, title: "أحداث المدرسة", zones: [{id: 1, label: "المدرسة"}, {id: 2, label: "الغداء"}, {id: 3, label: "القراءة"}], items: [{id: 3, img: "game/8.jpg"}, {id: 1, img: "game/4.jpg"}, {id: 2, img: "game/7 (2).jpg"}] },
+            { level: 3, title: "رتب اليوم كاملاً", zones: [{id: 1, label: "الاستيقاظ"}, {id: 2, label: "المدرسة"}, {id: 3, label: "الغداء"}, {id: 4, label: "النوم"}], items: [{id: 3, img: "game/7 (2).jpg"}, {id: 1, img: "game/1.jpg"}, {id: 4, img: "game/9.jpg"}, {id: 2, img: "game/4.jpg"}] }
         ];
 
         function handleDragStart(e, id, imgUrl) {
@@ -755,7 +759,31 @@
                         </div>
                         <div class="profile-title">إعداد الطالبة</div>
                         <div class="profile-name">سارة عبد الوهاب<br>محمد عبد الحميد</div>
-                        <div class="mt-4 text-gray-400 text-sm font-bold">كلية التربية للطفولة المبكرة<br>جامعة القاهرة</div>
+                        <div class="mt-4 text-gray-400 text-sm font-bold">
+                            كلية التربية للطفولة المبكرة<br>
+                            جامعة القاهرة
+                        </div>
+
+                        <div class="mt-6 text-right text-sm font-bold space-y-1" dir="rtl">
+                            <div>الاسم : 
+                                <span class="text-gray-500 font-normal mr-2">سارة عبدالوهاب محمد عبدالحميد</span>
+                            </div>
+                            <div>الفرقة : 
+                                <span class="text-gray-500 font-normal mr-2">الثالثة</span>
+                            </div>
+                            <div>الشعبة : 
+                                <span class="text-gray-500 font-normal mr-2">3</span>
+                            </div>
+                            <div>الرقم داخل الشعبة :
+                                <span class="text-gray-500 font-normal mr-2">5</span>
+                            </div>
+                            <div class="bg-yellow-50 p-1 rounded">المقرر :
+                                <span class="text-gray-700 font-normal mr-2">القراءة الإلكترونية</span>
+                            </div>
+                            <div class="bg-yellow-50 p-1 rounded">الكود :
+                                <span class="text-gray-700 font-normal mr-2">M75031</span>
+                            </div>
+                        </div>
                     </div>
                 </div>`;
             }
@@ -905,6 +933,12 @@
 
         // Navigation Logic
         function nextPage() {
+            // تفعيل التشغيل تلقائياً عند الانتقال للصفحة التالية
+            if (!isPlaying) {
+                isPlaying = true;
+                document.getElementById('playPauseBtn').innerHTML = '<i class="fas fa-pause"></i>';
+            }
+
             const numSheets = document.querySelectorAll('.page').length;
             if (currentPage < numSheets) { 
                 currentPage++; 
@@ -912,6 +946,12 @@
             }
         }
         function prevPage() { 
+            // تفعيل التشغيل تلقائياً عند العودة للصفحة السابقة
+            if (!isPlaying) {
+                isPlaying = true;
+                document.getElementById('playPauseBtn').innerHTML = '<i class="fas fa-pause"></i>';
+            }
+
             if (currentPage > 0) { 
                 currentPage--; 
                 updateBook(); 
